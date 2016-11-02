@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="10dip"
+        android:id="@+id/main_layout"
+        android:orientation="vertical" >
+
+        <TextView
+            style="@style/ContentText"
+            android:id="@+id/title"
+            android:textSize="@dimen/title_text_size"
+            android:textStyle="bold"
+            android:textColor="@color/textDark"
+            android:text="@string/title" />
+
+        <com.google.vr.sdk.widgets.pano.VrPanoramaView
+            android:id="@+id/pano_view"
+            android:layout_margin="5dip"
+            android:layout_width="match_parent"
+            android:layout_height="250dip"/>
+
+        <!--<com.google.vr.sdk.widgets.video.VrVideoView-->
+            <!--android:id="@+id/video_view"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="250dip"/>-->
+    </LinearLayout>
+</ScrollView>
