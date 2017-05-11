@@ -1,1 +1,3 @@
-include ':app', ':audio', ':base', ':common', ':photodemo', ':commonwidget', ':panowidget', ':videowidget'
+include ':app', ':audio', ':base', ':common', ':photodemo', ':commonwidget', ':panowidget', ':videowidget', ':myapplication', ':rajivaliexample'
+include 'RajawaliDemo'
+

@@ -389,7 +389,7 @@ public final class WorldLayoutData {
             1.0f,  0.0f, 0.0f, 1.0f,
             1.0f,  0.0f, 0.0f, 1.0f,
 
-            // bottom, pretty sure my gf would say its a different red
+            // bottom....red
             1.0f,  0.0f, 0.0f, 1.0f,
             1.0f,  0.0f, 0.0f, 1.0f,
             1.0f,  0.0f, 0.0f, 1.0f,

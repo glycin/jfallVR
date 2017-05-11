@@ -49,9 +49,9 @@ public class PanoramaMainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_layout);
         panoWidgetView = (VrPanoramaView) findViewById(R.id.pano_view);
-        //videoWidgetView = (VrVideoView) findViewById(R.id.video_view);
+        videoWidgetView = (VrVideoView) findViewById(R.id.video_view);
         loadImageFromGallery();
-        //loadVideo();
+        loadVideo();
     }
 
 

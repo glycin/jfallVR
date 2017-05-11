@@ -120,6 +120,8 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
 
     private boolean canHide = true;
 
+    private FPSCounter fps = new FPSCounter();
+
     private int loadGLShader(int type, int resId) {
         String code = readRawTextFile(resId);
         int shader = GLES20.glCreateShader(type);
@@ -142,19 +144,6 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         }
 
         return shader;
-    }
-
-    /**
-     * Checks if we've had an error inside of OpenGL ES, and if so what that error is.
-     *
-     * @param label Label to report in case of error.
-     */
-    private static void checkGLError(String label) {
-        int error;
-        while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
-            Log.e(TAG, label + ": glError " + error);
-            throw new RuntimeException(label + ": glError " + error);
-        }
     }
 
     /**
@@ -192,7 +181,8 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         gvrView.setEGLConfigChooser(8, 8, 8, 8, 16, 8);
 
         gvrView.setRenderer(this);
-        gvrView.setTransitionViewEnabled(true);
+        //Show Irritating cardboard dialog
+        gvrView.setTransitionViewEnabled(false);
 
         if (gvrView.setAsyncReprojectionEnabled(true)) {
             // Async reprojection decouples the app framerate from the display framerate,
@@ -237,7 +227,7 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
     @Override
     public void onSurfaceCreated(EGLConfig config) {
         Log.i(TAG, "onSurfaceCreated");
-        GLES20.glClearColor(0.4f, 0.8f, 1.0f, 0.5f); // Dark background so text shows up well.
+        GLES20.glClearColor(0.4f, 0.8f, 1.0f, 0.5f);
 
         ByteBuffer bbVertices = ByteBuffer.allocateDirect(WorldLayoutData.CUBE_COORDS.length * 4);
         bbVertices.order(ByteOrder.nativeOrder());
@@ -313,8 +303,6 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         GLES20.glLinkProgram(cubeProgram);
         GLES20.glUseProgram(cubeProgram);
 
-        checkGLError("Cube program");
-
         cubePositionParam = GLES20.glGetAttribLocation(cubeProgram, "a_Position");
         cubeNormalParam = GLES20.glGetAttribLocation(cubeProgram, "a_Normal");
         cubeColorParam = GLES20.glGetAttribLocation(cubeProgram, "a_Color");
@@ -324,15 +312,11 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         cubeModelViewProjectionParam = GLES20.glGetUniformLocation(cubeProgram, "u_MVP");
         cubeLightPosParam = GLES20.glGetUniformLocation(cubeProgram, "u_LightPos");
 
-        checkGLError("Cube program params");
-
         floorProgram = GLES20.glCreateProgram();
         GLES20.glAttachShader(floorProgram, vertexShader);
         GLES20.glAttachShader(floorProgram, gridShader);
         GLES20.glLinkProgram(floorProgram);
         GLES20.glUseProgram(floorProgram);
-
-        checkGLError("Floor program");
 
         floorModelParam = GLES20.glGetUniformLocation(floorProgram, "u_Model");
         floorModelViewParam = GLES20.glGetUniformLocation(floorProgram, "u_MVMatrix");
@@ -343,15 +327,11 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         floorNormalParam = GLES20.glGetAttribLocation(floorProgram, "a_Normal");
         floorColorParam = GLES20.glGetAttribLocation(floorProgram, "a_Color");
 
-        checkGLError("Floor program params");
-
         laserProgram = GLES20.glCreateProgram();
         GLES20.glAttachShader(laserProgram, vertexShader);
         GLES20.glAttachShader(laserProgram, passthroughShader);
         GLES20.glLinkProgram(laserProgram);
         GLES20.glUseProgram(laserProgram);
-
-        checkGLError("Laser program");
 
         laserPositionParam = GLES20.glGetAttribLocation(laserProgram, "a_Position");
         laserNormalParam = GLES20.glGetAttribLocation(laserProgram, "a_Normal");
@@ -362,34 +342,27 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         laserModelViewProjectionParam = GLES20.glGetUniformLocation(laserProgram, "u_MVP");
         laserLightPosParam = GLES20.glGetUniformLocation(laserProgram, "u_LightPos");
 
-        checkGLError("Laser program params");
-
         Matrix.setIdentityM(modelFloor, 0);
-        Matrix.translateM(modelFloor, 0, 0, -floorDepth, 0); // Floor appears below user.
+        Matrix.translateM(modelFloor, 0, 0, -floorDepth, 0);
 
         updateModelPosition();
         shootLaser();
 
-        // Avoid any delays during start-up due to decoding of sound files.
+        // Faster loading woop woop
         new Thread(
                 new Runnable() {
                     @Override
                     public void run() {
-                        // Start spatial audio playback of OBJECT_SOUND_FILE at the model position. The
-                        // returned sourceId handle is stored and allows for repositioning the sound object
-                        // whenever the cube position changes.
                         gvrAudioEngine.preloadSoundFile(EXPLOSION_SOUND_FILE);
                         sourceId = gvrAudioEngine.createSoundObject(EXPLOSION_SOUND_FILE);
                         gvrAudioEngine.setSoundObjectPosition(
                                 sourceId, modelPosition[0], modelPosition[1], modelPosition[2]);
-                        gvrAudioEngine.playSound(sourceId, true /* looped playback */);
-                        // Preload an unspatialized sound to be played on a successful trigger on the cube.
+                        gvrAudioEngine.playSound(sourceId, true);
                         gvrAudioEngine.preloadSoundFile(LASER_SOUND_FILE);
                     }
                 })
                 .start();
 
-        checkGLError("onSurfaceCreated");
     }
 
     /**
@@ -402,9 +375,11 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
             gvrAudioEngine.setSoundObjectPosition(
                     sourceId, modelPosition[0], modelPosition[1], modelPosition[2]);
         }
-        checkGLError("updateCubePosition");
     }
 
+    /**
+     * Repositions and rotates the laser based on the head rotation
+     */
     private void shootLaser(){
         Matrix.setIdentityM(modelLaser,0);
         Matrix.translateM(modelLaser,0, 0, -0.5f, 0);
@@ -454,20 +429,23 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
 
         // Build the camera matrix and apply it to the ModelView.
         Matrix.setLookAtM(camera, 0, 0.0f, 0.0f, CAMERA_Z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-
         headTransform.getHeadView(headView, 0);
         headTransform.getEulerAngles(headRotation, 0);
         gvrAudioEngine.setHeadRotation(
                 headRotation[0], headRotation[1], headRotation[2], headRotation[3]);
+        fps.logFrame();
         // Regular update call to GVR audio engine.
         gvrAudioEngine.update();
-        checkGLError("onReadyToDraw");
+
     }
 
     private void setCubeRotation() {
         Matrix.rotateM(modelCube, 0, TIME_DELTA, 0.5f, 0.5f, 1.0f);
     }
 
+    /**
+     * Translates the laser on the Z-axis while checking for "collision" (it really isnt collision)
+     */
     private void moveLaser(){
         Matrix.translateM(modelLaser,0,0.5f,0,0);
         boolean checkZ = modelCube[14] - 0.5f < modelLaser[14] && modelCube[14] + 0.5f > modelLaser[14];
@@ -483,7 +461,6 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-        checkGLError("colorParam");
 
         // Apply the eye transformation to the camera.
         Matrix.multiplyMM(view, 0, eye.getEyeView(), 0, camera, 0);
@@ -540,7 +517,6 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         GLES20.glEnableVertexAttribArray(cubeColorParam);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
-        checkGLError("Drawing cube");
     }
 
     public void drawLaser() {
@@ -561,7 +537,7 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         // Set the ModelViewProjection matrix in the shader.
         GLES20.glUniformMatrix4fv(laserModelViewProjectionParam, 1, false, modelViewProjection, 0);
 
-        // Set the normal positions of the cube, again for shading
+        // Set the normal positions of the laser, again for shading
         GLES20.glVertexAttribPointer(laserNormalParam, 3, GLES20.GL_FLOAT, false, 0, laserNormals);
         GLES20.glVertexAttribPointer(laserColorParam, 4, GLES20.GL_FLOAT, false, 0, laserColors);
 
@@ -571,7 +547,6 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         GLES20.glEnableVertexAttribArray(laserColorParam);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
-        checkGLError("Drawing laser");
     }
 
     public void drawFloor() {
@@ -592,8 +567,6 @@ public class DemoMainActivity extends GvrActivity implements GvrView.StereoRende
         GLES20.glEnableVertexAttribArray(floorColorParam);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 24);
-
-        checkGLError("drawing floor");
     }
 
     @Override
